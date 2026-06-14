@@ -4,6 +4,7 @@ import Home from '@/pages/Home';
 import ItemsList from '@/pages/ItemsList';
 import ItemDetail from '@/pages/ItemDetail';
 import ItemEdit from '@/pages/ItemEdit';
+import TagList from '@/pages/TagList';
 
 export const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
       { path: 'items/new', element: <ItemEdit /> },
       { path: 'items/:id', element: <ItemDetail /> },
       { path: 'items/:id/edit', element: <ItemEdit /> },
+      { path: 'tags', element: <TagList /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

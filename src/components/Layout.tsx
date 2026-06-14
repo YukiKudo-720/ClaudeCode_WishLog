@@ -7,7 +7,7 @@ import { signOutCurrent } from '@/lib/auth';
 
 const navItems = [
   { to: '/', label: 'トップ', end: true },
-  { to: '/items', label: '一覧', end: false },
+  { to: '/tags', label: 'タグ', end: false },
 ];
 
 export function Layout() {

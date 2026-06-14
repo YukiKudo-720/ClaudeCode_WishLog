@@ -356,16 +356,50 @@ v2 以降:
 - [x] §10-8 PWA 資産整備完了: [scripts/generate-pwa-icons.mjs](../../scripts/generate-pwa-icons.mjs) で sharp を使い `pwa-192x192.png` / `pwa-512x512.png` / `pwa-maskable-512x512.png` (safe zone 96px パディング) / `apple-touch-icon.png` / `favicon.svg` を生成 (`npm run icons`)。[index.html](../../index.html) に apple-touch-icon + iOS PWA メタ + `robots:noindex` 追加。[vite.config.ts](../../vite.config.ts) の `manualChunks` で `vendor-firebase` (547KB) / `vendor-react` (209KB) / `vendor-form` (80KB) / app (140KB) に分割
 - [x] **配信準備完了**: [firebase.json](../../firebase.json) (hosting + firestore、SPA rewrites、静的アセット immutable キャッシュ、`sw.js` / `index.html` / `manifest.webmanifest` は `no-cache`) / [.firebaserc](../../.firebaserc) / [firestore.rules](../../firestore.rules) (§4.5 のもの) / [firestore.indexes.json](../../firestore.indexes.json) / `package.json` に `deploy:rules` / `deploy:hosting` / `deploy` スクリプト追加
 - [x] `firebase-tools` 15.18.0 を devDependencies に追加 (`npm run deploy:*` が直接動作)
-- [x] **本番デプロイ完了**: `firebase deploy --only firestore:rules` でルール適用 + `firebase deploy --only hosting` で公開。**公開 URL: <https://claudecode-wishlog.web.app>**。スマホ Chrome/Safari の「ホーム画面に追加」でインストール確認済み
-- [ ] §10-6 フィルタ・ソート (FilterBar + URL 同期)
-- [ ] §10-7 タグ/評価/wish↔done ワンタップトグル UI
-- [ ] §10-9 テスト (vitest で items CRUD / search / sync ミラー)
-- [ ] §10-10 手動 QA (スマホ + PC でログイン同期確認)
-- [ ] §10-3 Dexie + 型 (`src/data/types.ts` / `src/lib/db.ts`)
-- [ ] §10-4 items CRUD + sync (`src/lib/items.ts` / `src/lib/sync.ts`)
-- [ ] §10-5〜§10-10 画面 → フィルタ → タグ/評価/wish↔done → PWA → テスト → 手動 QA
+- [x] **本番デプロイ (1 回目) 完了**: `firebase deploy --only firestore:rules` でルール適用 + `firebase deploy --only hosting` で公開。**公開 URL: <https://claudecode-wishlog.web.app>**。スマホ Chrome/Safari の「ホーム画面に追加」でインストール確認済み
+- [x] §10-6 フィルタ・ソート完了: [src/components/FilterBar.tsx](../../src/components/FilterBar.tsx) (検索 input + 評価最低 + 6 種ソート) / [src/hooks/useItems.ts](../../src/hooks/useItems.ts) に `ItemSort` (`updatedDesc` / `updatedAsc` / `createdDesc` / `doneDesc` / `ratingDesc` / `titleAsc`) と sort 比較関数を追加 / [src/pages/ItemsList.tsx](../../src/pages/ItemsList.tsx) で URL state 同期 (`?q=&sort=&rating=`)
+- [x] §10-7 wish↔done ワンタップトグル完了: [src/components/StatusToggle.tsx](../../src/components/StatusToggle.tsx) (◯/✓ アイコン、`setItemStatus` を呼ぶ、`e.stopPropagation()` で Link バブリング抑止)。ItemCard 右端ボーダー付きカラムに配置、ItemDetail のステータス表示横にも配置
+- [x] **データモデル拡張**: `ItemLocation` に `prefecture?` / `city?` を追加。[src/data/regions.ts](../../src/data/regions.ts) (47 都道府県 + 主要市区町村プリセット、東京都は 23 区 + 多摩主要市) / [src/hooks/useCityOptions.ts](../../src/hooks/useCityOptions.ts) (デフォルト ∪ アイテム集約)。ItemForm の場所 fieldset 内に都道府県/市区町村プルダウン (未選択可、市区町村は中カテゴリと同様の `＋ 新規追加…` 方式)
+- [x] **ナビゲーション変更**: ヘッダー `[トップ] [一覧]` → `[トップ] [タグ]`。[src/pages/TagList.tsx](../../src/pages/TagList.tsx) を新規追加 (利用中タグ + プリセット未使用の 2 セクション、件数バッジ)、`/tags` ルート登録
+- [x] **ItemsList オーバーホール**:
+  - [やりたい][やった][すべて] タブで status 切替 (URL `?status=` 同期)
+  - フィルタチップ (type / tag) を表示し × で個別解除
+  - 場所 (都道府県) でグルーピング (北→南順、未設定は末尾、想定外都道府県は中間)
+  - 新規ボタンが現在の `?type=` を引き継いで `/items/new?type=foo` へ
+- [x] **ItemDetail 戻るリンク**: 最上部に `← {カテゴリ} 一覧へ戻る` (`/items?type=${item.type}`)
+- [x] **本番デプロイ (2 回目) 完了**: `npm run deploy:hosting` で上記すべてを反映 (差分アップロード 4 ファイル)
+
+### 残作業 (ToDo)
+
+#### MVP 完成までに残すもの
+
+- [ ] **§10-9 テスト**: vitest で以下を追加
+  - `src/lib/items.test.ts` — createItem / updateItem / setItemStatus / softDeleteItem の write-through (Firestore mock + fake-indexeddb)
+  - `src/hooks/useItems.test.ts` — フィルタ条件と sort 順
+  - `src/lib/sync.test.ts` — onSnapshot → Dexie ミラー、`normalizeLegacy` (旧 `subcategory: string[]` の正規化)
+  - `src/components/StatusToggle.test.tsx` — クリックで status トグル + `e.stopPropagation()` 検証
+- [ ] **§10-10 手動 QA 残り**: 別端末 (例: PC + スマホ) でログイン → 同時編集の競合 → オフライン編集 → 再接続時 flush
+- [ ] **コミット未済の今回分の push**: §10-6 / §10-7 / 場所拡張 / タグページ等 (本番には deploy 済みだが、git 未コミット)
+
+#### UI 改善候補 (ユーザーから挙がっていない)
+
+- [ ] **Settings ページ**: ログアウト導線の集約、JSON エクスポート / インポート
+- [ ] FilterBar に「中/小カテゴリ絞り込み」「場所 (city) 絞り込み」を追加
+- [ ] 並びの保存 (Dexie `meta` に最終 sort を残す)
+- [ ] vendor-firebase 547KB chunk のさらなる分割 (auth と firestore を遅延 import)
+- [ ] PWA インストール促進 UI (`beforeinstallprompt` フック)
+
+#### v2 以降 (§8 後段)
+
+- [ ] 写真アップロード (Firebase Storage)
+- [ ] 通知/リマインダー
+- [ ] 共有 (家族/友人)
+- [ ] 地図ビュー (place 系を地図にピン表示)
+- [ ] 統計/グラフ
+- [ ] アーカイブ/復元 UI
 
 ### ファイル配置メモ
 
 - リポジトリ構成: アプリコードは **ルート直下** (`src/`, `public/`, `vite.config.ts` 等)、計画/ハーネス設定は `.claude/` 配下に共存。
-- secrets: `.env` は `.gitignore` 済み。Firestore セキュリティルールは Firebase Console 側で §4.5 のものに設定する。
+- secrets: `.env` は `.gitignore` 済み。Firestore セキュリティルールは `firestore.rules` をリポジトリ管理し `firebase deploy --only firestore:rules` で適用済み。
+- 公開 URL: <https://claudecode-wishlog.web.app> (Firebase Hosting、autoUpdate モードの SW で再訪時に最新版へ自動更新)。

@@ -24,6 +24,8 @@ export type Status = 'wish' | 'done';
 export const STATUSES: readonly Status[] = ['wish', 'done'] as const;
 
 export interface ItemLocation {
+  prefecture?: string;
+  city?: string;
   name?: string;
   gmapUrl?: string;
   address?: string;

@@ -4,7 +4,9 @@ import { Plus, X } from 'lucide-react';
 import { itemFormSchema } from '@/lib/itemSchema';
 import { ITEM_TYPES, STATUSES, type Item, type ItemType } from '@/data/types';
 import { STATUS_LABELS, TYPE_LABELS } from '@/data/categories';
+import { PREFECTURES } from '@/data/regions';
 import { useMidOptions, useSmallOptions } from '@/hooks/useCategoryOptions';
+import { useCityOptions } from '@/hooks/useCityOptions';
 import { useTagOptions } from '@/hooks/useTagOptions';
 
 interface BasicFields {
@@ -27,7 +29,13 @@ export interface ItemFormSubmit {
   memo: string;
   rating?: number;
   url?: string;
-  location?: { name?: string; gmapUrl?: string; address?: string };
+  location?: {
+    prefecture?: string;
+    city?: string;
+    name?: string;
+    gmapUrl?: string;
+    address?: string;
+  };
 }
 
 interface Props {
@@ -122,6 +130,35 @@ export function ItemForm({
     }
   };
 
+  // 場所: 都道府県 / 市区町村 (任意)
+  const [prefecture, setPrefecture] = useState<string>(
+    initial?.location?.prefecture ?? '',
+  );
+  const cityOptions = useCityOptions(prefecture || undefined);
+  const [citySelect, setCitySelect] = useState<string>(
+    initial?.location?.city ?? '',
+  );
+  const [cityAdding, setCityAdding] = useState(false);
+  const [cityNew, setCityNew] = useState('');
+  const cityValue = cityAdding ? cityNew.trim() : citySelect;
+
+  const handlePrefectureChange = (val: string) => {
+    setPrefecture(val);
+    setCitySelect('');
+    setCityAdding(false);
+    setCityNew('');
+  };
+
+  const handleCityChange = (val: string) => {
+    if (val === ADD_SENTINEL) {
+      setCityAdding(true);
+      setCitySelect('');
+    } else {
+      setCityAdding(false);
+      setCitySelect(val);
+    }
+  };
+
   const tagOpts = useTagOptions();
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagSelect, setTagSelect] = useState<string>('');
@@ -156,6 +193,8 @@ export function ItemForm({
       rating: basic.rating,
       url: basic.url,
       location: {
+        prefecture,
+        city: cityValue,
         name: basic.locationName,
         gmapUrl: basic.locationGmapUrl,
         address: basic.locationAddress,
@@ -169,7 +208,11 @@ export function ItemForm({
     const v = parsed.data;
     const location =
       v.location &&
-      (v.location.name || v.location.gmapUrl || v.location.address)
+      (v.location.prefecture ||
+        v.location.city ||
+        v.location.name ||
+        v.location.gmapUrl ||
+        v.location.address)
         ? v.location
         : undefined;
     await onSubmit({
@@ -402,7 +445,48 @@ export function ItemForm({
       <fieldset className="rounded-md border border-accent/30 p-3">
         <legend className="px-1 text-xs text-text/70">場所 (任意)</legend>
         <div className="space-y-3">
-          <Field label="表示名">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="都道府県">
+              <select
+                value={prefecture}
+                onChange={(e) => handlePrefectureChange(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">(未選択)</option>
+                {PREFECTURES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="市区町村">
+              <select
+                value={cityAdding ? ADD_SENTINEL : citySelect}
+                disabled={!prefecture}
+                onChange={(e) => handleCityChange(e.target.value)}
+                className={`${inputCls} disabled:bg-bg disabled:text-text/40`}
+              >
+                <option value="">(未選択)</option>
+                {cityOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value={ADD_SENTINEL}>＋ 新規追加…</option>
+              </select>
+              {cityAdding && (
+                <input
+                  type="text"
+                  value={cityNew}
+                  onChange={(e) => setCityNew(e.target.value)}
+                  placeholder="新しい市区町村名"
+                  className={`${inputCls} mt-2`}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label="表示名 (店名・場所名など)">
             <input
               type="text"
               {...register('locationName')}
@@ -417,7 +501,7 @@ export function ItemForm({
               placeholder="https://maps.google.com/..."
             />
           </Field>
-          <Field label="住所">
+          <Field label="住所 (詳細)">
             <input
               type="text"
               {...register('locationAddress')}

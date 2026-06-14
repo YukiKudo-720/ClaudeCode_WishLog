@@ -2,6 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import type { Item, ItemType, Status } from '@/data/types';
 import { db } from '@/lib/db';
 
+export type ItemSort =
+  | 'updatedDesc'
+  | 'updatedAsc'
+  | 'createdDesc'
+  | 'doneDesc'
+  | 'ratingDesc'
+  | 'titleAsc';
+
 export interface ItemsFilter {
   types?: readonly ItemType[];
   statuses?: readonly Status[];
@@ -10,17 +18,40 @@ export interface ItemsFilter {
   /** 部分一致 (title / memo) */
   query?: string;
   includeDeleted?: boolean;
+  sort?: ItemSort;
 }
 
 const norm = (s: string) => s.toLowerCase();
 
+function compare(a: Item, b: Item, sort: ItemSort): number {
+  switch (sort) {
+    case 'updatedAsc':
+      return a.updatedAt.localeCompare(b.updatedAt);
+    case 'createdDesc':
+      return b.createdAt.localeCompare(a.createdAt);
+    case 'doneDesc':
+      return (b.doneAt ?? '').localeCompare(a.doneAt ?? '');
+    case 'ratingDesc': {
+      const r = (b.rating ?? 0) - (a.rating ?? 0);
+      if (r !== 0) return r;
+      return b.updatedAt.localeCompare(a.updatedAt);
+    }
+    case 'titleAsc':
+      return a.title.localeCompare(b.title, 'ja');
+    case 'updatedDesc':
+    default:
+      return b.updatedAt.localeCompare(a.updatedAt);
+  }
+}
+
 export function useItems(filter: ItemsFilter = {}): Item[] | undefined {
   return useLiveQuery(
     async () => {
-      const all = await db.items.orderBy('updatedAt').reverse().toArray();
+      const all = await db.items.toArray();
       const q = filter.query ? norm(filter.query) : null;
       const minRating = filter.minRating ?? 0;
-      return all.filter((it) => {
+      const sort = filter.sort ?? 'updatedDesc';
+      const filtered = all.filter((it) => {
         if (!filter.includeDeleted && it.deletedAt) return false;
         if (filter.types && filter.types.length > 0 && !filter.types.includes(it.type))
           return false;
@@ -40,6 +71,8 @@ export function useItems(filter: ItemsFilter = {}): Item[] | undefined {
         }
         return true;
       });
+      filtered.sort((a, b) => compare(a, b, sort));
+      return filtered;
     },
     [
       filter.types?.join(',') ?? '',
@@ -48,6 +81,7 @@ export function useItems(filter: ItemsFilter = {}): Item[] | undefined {
       filter.minRating ?? 0,
       filter.query ?? '',
       filter.includeDeleted ?? false,
+      filter.sort ?? 'updatedDesc',
     ],
   );
 }

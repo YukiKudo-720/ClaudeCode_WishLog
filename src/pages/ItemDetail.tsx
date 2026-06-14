@@ -1,9 +1,17 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ExternalLink, MapPin, Pencil, Star, Trash2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  ExternalLink,
+  MapPin,
+  Pencil,
+  Star,
+  Trash2,
+} from 'lucide-react';
 import { useItem } from '@/hooks/useItems';
 import { useAuth } from '@/hooks/useAuth';
 import { softDeleteItem } from '@/lib/items';
-import { STATUS_LABELS, TYPE_ICONS, TYPE_LABELS } from '@/data/categories';
+import { TYPE_ICONS, TYPE_LABELS } from '@/data/categories';
+import { StatusToggle } from '@/components/StatusToggle';
 
 export default function ItemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +46,13 @@ export default function ItemDetail() {
 
   return (
     <article className="space-y-5">
+      <Link
+        to={`/items?type=${item.type}`}
+        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+      >
+        <ChevronLeft className="size-4" />
+        {TYPE_LABELS[item.type]} 一覧へ戻る
+      </Link>
       <header className="flex items-start gap-3">
         <span className="mt-1 inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Icon className="size-6" />
@@ -46,14 +61,9 @@ export default function ItemDetail() {
           <div className="text-xs text-text/60">{TYPE_LABELS[item.type]}</div>
           <h2 className="text-2xl font-bold text-text">{item.title}</h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-            <span
-              className={
-                item.status === 'done'
-                  ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700'
-                  : 'rounded-full bg-bg px-2 py-0.5 text-xs text-text/70'
-              }
-            >
-              {STATUS_LABELS[item.status]}
+            <StatusToggle item={item} size="sm" />
+            <span className="text-xs text-text/70">
+              {item.status === 'done' ? 'やった' : 'やりたい'}
             </span>
             {item.rating != null && (
               <span className="inline-flex items-center gap-0.5 text-amber-600">
@@ -126,25 +136,39 @@ export default function ItemDetail() {
         </Section>
       )}
 
-      {item.location && (item.location.name || item.location.gmapUrl || item.location.address) && (
-        <Section label="場所">
-          {item.location.name && <p className="font-medium">{item.location.name}</p>}
-          {item.location.address && (
-            <p className="text-sm text-text/70">{item.location.address}</p>
-          )}
-          {item.location.gmapUrl && (
-            <a
-              href={item.location.gmapUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="mt-1 inline-flex items-center gap-1 text-sm text-primary underline hover:opacity-80"
-            >
-              <MapPin className="size-3" />
-              マップで開く
-            </a>
-          )}
-        </Section>
-      )}
+      {item.location &&
+        (item.location.prefecture ||
+          item.location.city ||
+          item.location.name ||
+          item.location.gmapUrl ||
+          item.location.address) && (
+          <Section label="場所">
+            {(item.location.prefecture || item.location.city) && (
+              <p className="text-sm">
+                {[item.location.prefecture, item.location.city]
+                  .filter(Boolean)
+                  .join(' / ')}
+              </p>
+            )}
+            {item.location.name && (
+              <p className="mt-0.5 font-medium">{item.location.name}</p>
+            )}
+            {item.location.address && (
+              <p className="text-sm text-text/70">{item.location.address}</p>
+            )}
+            {item.location.gmapUrl && (
+              <a
+                href={item.location.gmapUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="mt-1 inline-flex items-center gap-1 text-sm text-primary underline hover:opacity-80"
+              >
+                <MapPin className="size-3" />
+                マップで開く
+              </a>
+            )}
+          </Section>
+        )}
 
       <Section label="日時">
         <ul className="text-xs text-text/60">

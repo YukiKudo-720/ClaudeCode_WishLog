@@ -34,6 +34,8 @@ export const itemFormSchema = z.object({
   url: optionalUrl,
   location: z
     .object({
+      prefecture: optionalTrimmed,
+      city: optionalTrimmed,
       name: optionalTrimmed,
       gmapUrl: optionalUrl,
       address: optionalTrimmed,
